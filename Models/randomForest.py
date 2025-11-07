@@ -1,40 +1,76 @@
-# Random Forest with Hyperparameter Tuning
-print("\n--- 5. Model Training: Intermediate (RandomForest) ---")
+# --- 5. Model Tuning: Intermediate (Random Forest) ---
+print("\n--- 5. Model Tuning: Intermediate (RandomForest) ---")
 
-# Import the new model
+# Import the new libraries for tuning
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
 
-# --- 5.1. Train Random Forest Model ---
-print("Training Random Forest model...")
+# --- 5.1. Define Parameter Grid for Tuning ---
+print("Defining hyperparameter search grid...")
 
-# Instantiate the model
-# We use the parameters discussed in the report:
-# class_weight='balanced' handles imbalance.
-# n_estimators and max_depth are key tuning parameters.
-# n_jobs=-1 uses all CPU cores for faster training.
-rf_model = RandomForestClassifier(
-    n_estimators=100,         # Number of trees (tunable)
-    max_depth=20,             # Max depth of trees (tunable)
-    class_weight='balanced',  # Handles imbalance
-    n_jobs=-1,                # Use all available CPUs
+# Define the grid of parameters to search.
+# These are distributions for RandomizedSearch to sample from.
+param_dist = {
+    'n_estimators': [100, 200, 500],       # Number of trees
+    'max_depth': [10, 20, 30, None],       # Max depth (None=unlimited)
+    'max_features': ['sqrt', 'log2'],      # Num features to consider at each split
+    'min_samples_split': [2, 5, 10],       # Min samples to split a node
+    'min_samples_leaf': [1, 2, 4],         # Min samples at a leaf node
+    'bootstrap': [True, False]             # Whether to bootstrap samples
+}
+
+# Create a base Random Forest model to tune
+# We set the parameters that we are NOT tuning
+rf_base = RandomForestClassifier(
+    class_weight='balanced',  # Still critical for imbalance
+    n_jobs=1,                # Use all available CPUs
     random_state=42
 )
 
-# Train the model (using the same data as before)
-rf_model.fit(X_train, y_train)
+# --- 5.2. Set Up Randomized Search CV ---
+print("Setting up Randomized Search for Random Forest...")
 
-print("Model training complete.")
+# Instantiate the RandomizedSearchCV object
+# n_iter = number of random combinations to try (e.g., 20). More is better but slower.
+# cv = 3 (3-fold cross-validation is a fast and solid choice)
+# scoring = 'average_precision' (This is the scikit-learn string for AUC-PR)
+# verbose = 2 (This will print updates so you can see its progress)
+rf_search = RandomizedSearchCV(
+    estimator=rf_base,
+    param_distributions=param_dist,
+    n_iter=10,  # Try 10 different combinations (you can increase this)
+    cv=2,       # Use 2-fold stratified cross-validation
+    scoring='average_precision', # IMPORTANT: Optimize for AUC-PR
+    verbose=2,
+    n_jobs=-1,
+    random_state=42
+)
+
+# --- 5.3. Run the Hyperparameter Search ---
+print("Running hyperparameter search... This may take several minutes.")
+# This command runs the search on the *training data only*
+rf_search.fit(X_train, y_train)
+
+print("Search complete.")
 print("-" * 30)
 
+# --- 5.4. Get Best Model and Evaluate ---
+print(f"Best parameters found: {rf_search.best_params_}")
+print(f"Best AUC-PR score during search: {rf_search.best_score_:.4f}")
+print("-" * 30)
 
-# --- 5.2. Evaluate Model Performance ---
-print("Evaluating model performance on the test set...")
+# Get the best model found by the search
+# This is the new, tuned model
+best_rf_model = rf_search.best_estimator_
+
+# --- 5.5. Evaluate Best Model on the *Test Set* ---
+print("Evaluating the *best* model on the hold-out test set...")
 
 # Get class predictions (0 or 1)
-y_pred_rf = rf_model.predict(X_test)
+y_pred_rf = best_rf_model.predict(X_test)
 
 # Get probability scores for the positive class (Fraud)
-y_scores_rf = rf_model.predict_proba(X_test)[:, 1]
+y_scores_rf = best_rf_model.predict_proba(X_test)[:, 1]
 
 # 1. Primary Metric: AUC-PR (Average Precision Score)
 auc_pr_rf = average_precision_score(y_test, y_scores_rf)
@@ -50,15 +86,15 @@ print(f"Fraud Recall: {fraud_recall_rf:.4f}")
 print(f"Fraud F1-Score: {fraud_f1_rf:.4f}")
 
 # 3. Full Classification Report
-print("\nFull Classification Report:")
+print("\nFull Classification Report (Tuned Model):")
 print(classification_report(y_test, y_pred_rf, target_names=['Non-Fraud (0)', 'Fraud (1)']))
 print("-" * 30)
 
 
-# --- 5.3. Plot Comparative Precision-Recall Curve ---
-print("Plotting Precision-Recall Curve (RF vs. LR)...")
+# --- 5.6. Plot Comparative Precision-Recall Curve ---
+print("Plotting Precision-Recall Curve (Tuned RF vs. LR)...")
 
-# Calculate PR curve points for Random Forest
+# Calculate PR curve points for the new Tuned Random Forest
 precision_rf, recall_rf, _ = precision_recall_curve(y_test, y_scores_rf)
 pr_auc_rf = auc(recall_rf, precision_rf)
 
@@ -69,9 +105,9 @@ plt.figure(figsize=(10, 7))
 plt.plot(recall, precision, color='blue', lw=2,
          label=f'Logistic Regression (AUC-PR = {pr_auc:.4f})')
 
-# Plot the new Random Forest curve
+# Plot the new Tuned Random Forest curve
 plt.plot(recall_rf, precision_rf, color='green', lw=2,
-         label=f'Random Forest (AUC-PR = {pr_auc_rf:.4f})')
+         label=f'Tuned Random Forest (AUC-PR = {pr_auc_rf:.4f})')
 
 plt.title('Precision-Recall Curve Comparison')
 plt.xlabel('Recall')
@@ -80,4 +116,4 @@ plt.legend(loc='lower left')
 plt.grid(True)
 plt.show()
 
-print("\nIntermediate model (Random Forest) complete.")
+print("\nIntermediate model (Tuned Random Forest) complete.")
