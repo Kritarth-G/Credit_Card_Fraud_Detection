@@ -6,10 +6,12 @@ Installation
 
 
 -> Git LFS is the essential tool for managing your large 150 MB creditcard.csv dataset, as standard Git cannot handle files exceeding 100 MB. Git LFS tracks the large file, stores its data separately from the repository, and commits only a small pointer to GitHub, keeping your project history fast and functional.
+
 -> Clone the repository
 
 
 
--> Alsp uploaded is the Jupyter file
+-> Also uploaded is the Jupyter file
+
 
 
