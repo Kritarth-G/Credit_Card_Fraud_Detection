@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import RobustScaler
+df = pd.read_pickle("data/processed_data.pkl")
 
 print("\n--- 4. Model Training: Baseline (LogisticRegression) ---")
 

@@ -10,7 +10,7 @@ sns.set(style="whitegrid")
 # --- 1. Load Dataset ---
 try:
     # Load the dataset
-    df = pd.read_csv('creditcard.csv')
+    df = pd.read_csv('data/creditcard.csv')
     print("Dataset loaded successfully.")
     print(f"Original shape of the data: {df.shape}")
     print("-" * 30)
@@ -216,3 +216,5 @@ print("\nPreprocessing complete.")
 print("-" * 30)
 
 print("\nFINAL: The preprocessed DataFrame 'df' is now ready for modeling.")
+
+df.to_pickle("data/processed_data.pkl") 

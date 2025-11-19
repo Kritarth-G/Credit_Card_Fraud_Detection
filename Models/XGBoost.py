@@ -1,14 +1,23 @@
 # Import the necessary libraries
 import xgboost as xgb
+from sklearn.model_selection import train_test_split
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint as sp_randint, uniform as sp_uniform
 import numpy as np
 from sklearn.metrics import classification_report, average_precision_score, precision_recall_curve, auc, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
+import pandas as pd
+df = pd.read_pickle("data/processed_data.pkl")
+
+# X = all columns except the last one ('Class')
+X = df.iloc[:, :-1]
+# y = only the last column ('Class')
+y = df.iloc[:, -1]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
 # Re-use the settings from Random Forest
-N_ITER_STAGE = 10
-CV_FOLDS = 5
+N_ITER_STAGE = 20
+CV_FOLDS = 3
 
 # --- 1. Calculate Imbalance Weight (Required for XGBoost) ---
 # Assuming y_train is available globally from your previous steps
@@ -44,7 +53,6 @@ xgb_base = xgb.XGBClassifier(
     objective='binary:logistic',
     scale_pos_weight=scale_pos_weight_value, # Critical for imbalance
     eval_metric='aucpr',
-    use_label_encoder=False,
     random_state=42,
     n_jobs=-1
 )
@@ -157,21 +165,13 @@ print(classification_report(y_test, y_pred_xgb_final, target_names=['Non-Fraud (
 print("-" * 30)
 
 
-# --- 6.5. Plot Comparative Precision-Recall Curve (using final tuned score) ---
+# --- 6.5. Plot Precision-Recall Curve (using final tuned score) ---
 
 # Calculate PR curve points for the Final Tuned XGBoost
 precision_xgb_final, recall_xgb_final, _ = precision_recall_curve(y_test, y_scores_xgb_final)
 pr_auc_xgb_final = auc(recall_xgb_final, precision_xgb_final)
 
 plt.figure(figsize=(12, 8))
-
-# Plot the baseline Logistic Regression curve (assuming variables are available)
-plt.plot(recall, precision, color='blue', lw=2, linestyle=':',
-         label=f'Logistic Regression (AUC-PR = {pr_auc:.4f})')
-
-# Plot the intermediate Random Forest curve (assuming variables are available)
-plt.plot(recall_rf, precision_rf, color='green', lw=2, linestyle='--',
-         label=f'Random Forest (AUC-PR = {pr_auc_rf:.4f})')
 
 # Plot the Final Tuned Advanced XGBoost curve
 plt.plot(recall_xgb_final, precision_xgb_final, color='red', lw=4,

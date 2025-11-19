@@ -2,8 +2,19 @@
 print("\n--- 5. Model Tuning: Intermediate (RandomForest) ---")
 
 # Import the new libraries for tuning
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, average_precision_score, precision_recall_curve, auc, f1_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
+import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_pickle("data/processed_data.pkl")
+
+# X = all columns except the last one ('Class')
+X = df.iloc[:, :-1]
+# y = only the last column ('Class')
+y = df.iloc[:, -1]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
 # --- 5.1. Define Parameter Grid for Tuning ---
 print("Defining hyperparameter search grid...")
@@ -100,10 +111,6 @@ pr_auc_rf = auc(recall_rf, precision_rf)
 
 # Create the plot
 plt.figure(figsize=(10, 7))
-
-# Plot the baseline Logistic Regression curve (variables are from the previous code block)
-plt.plot(recall, precision, color='blue', lw=2,
-         label=f'Logistic Regression (AUC-PR = {pr_auc:.4f})')
 
 # Plot the new Tuned Random Forest curve
 plt.plot(recall_rf, precision_rf, color='green', lw=2,
