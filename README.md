@@ -27,7 +27,8 @@ pip install -r requirements.txt
 
 
 
--> Also uploaded is the Jupyter file
+-> Or run Credit_Card.ipynb in Jupyter Notebook or Google Colab
+
 
 
 
